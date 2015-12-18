@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from pymongo import MongoClient
-from operations import registry,DeviceConnector
+from operations import registry,NetconfConnector,SSHConnector
 from contextlib import contextmanager
 import re
 
@@ -11,7 +11,18 @@ class OSNotSupported:
         print "Current {} version {} on device {} is not supported.".format(family.capitalize(),os,target)
 
 
-class DeviceContext(DeviceConnector):
+class DeviceContext(object):
+
+    def get_connection(self,connect_type):
+        if connect_type == 'cli':
+            self._method = SSHConnector(self)
+        if connect_type == 'netconf':
+            self._method = NetconfConnector(self)
+        return self._method.get_connection(connect_type)
+
+    def __getattr__(self,name):
+        return getattr(self._method,name)
+
     @contextmanager
     def get_db_connection(self):
         try:

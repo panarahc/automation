@@ -5,6 +5,12 @@ from os_versions import supported_versions
 
 
 @CheckOperation()
+def get_facts(context,target):
+    facts = context.get_operation('get_facts',target)
+    print facts
+    return None
+
+@CheckOperation()
 def get_prefixes_received_from_neighbor(context,target,neighbor):
     #print context.info
     prefixes = context.get_operation('get_prefixes_received_from_neighbor',target,neighbor)
