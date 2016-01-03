@@ -10,10 +10,10 @@ def parse_with_textfsm(template_file,raw_output):
     result = re_table.ParseText(raw_output)
     return result
 
-def _match(regex,output):
+def re_match(regex,output):
     output = re.match(regex,output,re.DOTALL)
     return output
 
-def _search(regex,output):
+def re_search(regex,output):
     output = re.search(regex,output,re.DOTALL)
     return output

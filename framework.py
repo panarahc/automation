@@ -18,25 +18,10 @@ class DeviceContext(object):
             self._method = SSHConnector(self)
         if connect_type == 'netconf':
             self._method = NetconfConnector(self)
-        return self._method.get_connection(connect_type)
+        return self._method.get_connection()
 
     def __getattr__(self,name):
         return getattr(self._method,name)
-
-    @contextmanager
-    def get_db_connection(self):
-        try:
-            self.connection = MongoClient('mongodb://localhost',port=27017)
-            self.db = self.connection.inventory
-            yield 
-        finally:
-            self.connection.close()
-
-    def get_context(self,target):
-        self.device = self.db.devices
-        query = {"_id":target}
-        result = self.device.find_one(query)
-        return result
 
     def get_operation(self,check,*args,**kwargs):
         device_family = self.info['family']
@@ -46,15 +31,32 @@ class DeviceContext(object):
 
 
 class CheckOperation(object):
+
     def __init__(self):
         #self.versions = versions
         self.device_context = DeviceContext() 
 
+    @contextmanager
+    def get_db_connection(self):
+        try:
+            self.connection = MongoClient('mongodb://localhost',port=27017)
+            self.db = self.connection.inventory
+            yield
+        finally:
+            self.connection.close()
+
+    def get_context(self,target):
+        self.device = self.db.devices
+        query = {"_id":target}
+        result = self.device.find_one(query)
+        return result
+
     def __call__(self,func):
         def wrap(*args,**kwargs):               
+            # The first argument MUST be 'target'
             target = args[0]
-            with self.device_context.get_db_connection():
-                device_info = self.device_context.get_context(target)
+            with self.get_db_connection():
+                device_info = self.get_context(target)
                 self.device_context.info = device_info
             #os_match = [device_info['version'] for item in self.versions[device_info['family']] if re.search(device_info['version'],item)]
             #if os_match:

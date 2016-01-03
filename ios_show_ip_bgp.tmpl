@@ -1,0 +1,20 @@
+Value valid ([r*][> ]i?)
+Value prefix (\d+\.\d+\.\d+\.[\d\/]+)
+Value Required next_hop (\d+\.\d+\.\d+\.\d+)
+Value metric (\d*)
+Value local_pref (\d*)
+Value weight (\d+)
+Value as_path ([\d ]*[ie\?])
+
+Start
+  ^\s+Network.*Next.* -> Routes
+
+Routes
+  # Scrub the "Network" line
+  ^\s+Network\s+
+  #
+  # Weight, metric and local pref
+  ^\s*${valid}\s*${prefix}\s+${next_hop}\s+${metric}\s+${local_pref}\s*\s\s${weight}\s${as_path} -> Record
+  # 
+  # Match lines with an assumed prefix
+  ^\s*${valid}\s*${next_hop}\s+${metric}\s+${local_pref}\s*\s\s${weight}\s${as_path} -> Record

@@ -3,8 +3,7 @@
 from netmiko import ConnectHandler
 from contextlib import contextmanager
 from ncclient import manager
-from helper_functions import _search,_match 
-import time
+from helper_functions import * 
 import textfsm
 import re
 
@@ -18,7 +17,7 @@ class NetconfConnector(object):
         self.parent = parent
 
     @contextmanager
-    def get_connection(self,connect_type):
+    def get_connection(self):
         try:
             hostname = self.parent.info['_id']
             ip_address = self.parent.info['ip_address']
@@ -42,7 +41,7 @@ class SSHConnector(object):
         self.parent = parent
 
     @contextmanager
-    def get_connection(self,connect_type):
+    def get_connection(self):
         try:
             hostname = self.parent.info['_id']
             ip_address = self.parent.info['ip_address']
@@ -93,16 +92,16 @@ def get_facts_ios(context,target):
     facts['chassis'] = re.search(r'"Chassis", DESCR: "(.+)"',output2).group(1).strip('\r')
     facts['uptime'] = re.search(r'(.+) uptime is (.+)',output1).group(2).strip('\r')
     facts['serial_number'] = re.search(r'SN: (.+)',output2).group(1).strip('\r')
-    facts['model'] = _match(model_regex,output1).groupdict()['model']
-    facts['image'] = _match(show_ver_regex,output1).groupdict()['image']
-    facts['version'] = _match(show_ver_regex,output1).groupdict()['version']
+    facts['model'] = re_match(model_regex,output1).groupdict()['model']
+    facts['image'] = re_match(show_ver_regex,output1).groupdict()['image']
+    facts['version'] = re_match(show_ver_regex,output1).groupdict()['version']
     return facts
 
 
 @registry.device_operation('get_facts',family='junos')
 def get_facts_junos(context,target):
 
-    uptime_regex = ".*\sup\s+(\S+),"
+    #uptime_regex = ".*\sup\s+(\S+),"
     model_regex = "Model:\s+(\S+)"
     version_regex = "JUNOS Base\s.*\s\[(\S+)\]"
  
@@ -114,9 +113,9 @@ def get_facts_junos(context,target):
     facts['_id'] = target
     #facts['chassis'] = 
     #facts['serial_number'] =
-    facts['uptime'] = _search(uptime_regex,output2).group(1)
-    facts['model'] = _search(model_regex,output1).group(1)
-    facts['version'] = _search(version_regex,output1).group(1)   
+    #facts['uptime'] = re_search(uptime_regex,output2).group(1)
+    facts['model'] = re_search(model_regex,output1).group(1)
+    facts['version'] = re_search(version_regex,output1).group(1)   
     return facts        
 
 @registry.device_operation('get_prefixes_received_from_neighbor',family='ios')
@@ -129,17 +128,14 @@ def get_prefixes_received_from_neighbor_ios(context,target,neighbor):
     with context.get_connection('cli'):
         output = context.run_command(command)
     
-    #prefixes = []
-    #template = open('cisco_show_ip_bgp.tmpl')
-    #re_table = textfsm.TextFSM(template)
-    #
-    #results = re_table.ParseText(output)
-    #for row in results:
-    #    if row[1]:
-    #        prefixes.append(row[1])
-    #
-    #return prefixes
-    return output  
+    template = 'ios_show_ip_bgp.tmpl'
+    result = parse_with_textfsm(template,output)
+    prefixes = []
+    for row in result:
+        if row[1]:
+            prefixes.append(row[1]) 
+    return prefixes  
+
 
 @registry.device_operation('get_prefixes_received_from_neighbor',family='junos')
 def get_prefixes_received_from_neighbor_junos(context,target,neighbor):
@@ -151,17 +147,49 @@ def get_prefixes_received_from_neighbor_junos(context,target,neighbor):
     with context.get_connection('netconf'):
         output = context.run_command(command)
 
-    #prefixes = []
-    #template = open('junos_bgp_prefixes_received_from_neighbor.tmpl')
-    #re_table = textfsm.TextFSM(template)
-    #
-    #results = re_table.ParseText(output)
-    #for row in results:
-    #    if row[1]:
-    #        prefixes.append(row[1])
-    #
-    #return prefixes
-    return output
+    prefixes_xpath = 'route-information/route-table/rt/rt-destination'
+    parsed_output = output.xpath(prefixes_xpath)
+    prefixes = [ item.text for item in parsed_output ]
+    return prefixes
+
+
+@registry.device_operation('get_bgp_neighbors',family='ios')
+def get_bgp_neighbors_ios(context,target):
+    '''
+    Executes 'show ip bgp summary' command and returns a list of lists with BGP neighbors and corresponding ASN.
+
+    Sample output:
+	[['10.1.2.2', '200'], ['10.1.3.3', '300']]	
+    '''
+    command = 'show ip bgp summary'
+
+    with context.get_connection('cli'):
+        output = context.run_command(command)
+
+    template = 'ios_show_ip_bgp_summary.tmpl'
+    bgp_neighbors = parse_with_textfsm(template,output)
+    return bgp_neighbors 
+
+
+@registry.device_operation('get_bgp_neighbors',family='junos')
+def get_bgp_neighbors_junos(context,target):
+    '''
+    Executes 'show bgp summary' command and returns a list of lists with BGP neighbors and corresponding ASN.
+    '''
+
+    command = 'show bgp summary'
+
+    with context.get_connection('netconf'):
+        output = context.run_command(command)
+
+    neighbor_xpath = 'bgp-information/bgp-peer/peer-address'
+    asn_xpath = 'bgp-information/bgp-peer/peer-as'
+
+    parsed_neighbor = output.xpath(neighbor_xpath)
+    parsed_asn = output.xpath(asn_xpath)
+    bgp_neighbors = [ [i.text,j.text] for i,j in zip(parsed_neighbor,parsed_asn) ]
+    return bgp_neighbors
+ 
 
 @registry.device_operation('get_lldp_neighbors',family='ios')
 def get_lldp_neighbors_ios(context,target):
