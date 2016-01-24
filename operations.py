@@ -4,6 +4,7 @@ from netmiko import ConnectHandler
 from contextlib import contextmanager
 from ncclient import manager
 from helper_functions import * 
+from pyIOSXR import IOSXR
 import textfsm
 import re
 
@@ -19,8 +20,8 @@ class NetconfConnector(object):
     @contextmanager
     def get_connection(self):
         try:
-            hostname = self.parent.info['_id']
-            ip_address = self.parent.info['ip_address']
+            hostname = self.parent.info['hostname']
+            ip_address = self.parent.info['_id']
             device_type = self.parent.info['family']
             self.parent.conn = manager.connect(host=ip_address,port=830,username=NetconfConnector.user,password=NetconfConnector.pwd,timeout=3,device_params={'name':device_type},hostkey_verify=False)
             yield self.parent.conn
@@ -43,8 +44,8 @@ class SSHConnector(object):
     @contextmanager
     def get_connection(self):
         try:
-            hostname = self.parent.info['_id']
-            ip_address = self.parent.info['ip_address']
+            hostname = self.parent.info['hostname']
+            ip_address = self.parent.info['_id']
             device_type = self.parent.info['family']
             device = {'device_type':device_type,'ip':ip_address,'username':SSHConnector.user,'password':SSHConnector.pwd}
             self.parent.conn = ConnectHandler(**device)
@@ -55,6 +56,35 @@ class SSHConnector(object):
     def run_command(self,cmd):
         output = self.parent.conn.send_command(cmd)
         return output
+
+
+class SSHXRConnector(object):
+    # username and password are defined as Class attributes
+    user = 'test123'
+    pwd = 'test123'
+
+    def __init__(self,parent):
+        self.parent = parent
+
+    @contextmanager
+    def get_connection(self):
+        try:
+            hostname = self.parent.info['hostname']
+            ip_address = self.parent.info['_id']
+            device_type = self.parent.info['family']
+            self.parent.conn = IOSXR(hostname=ip_address,username=SSHXRConnector.user,password=SSHXRConnector.pwd)
+            self.parent.conn.open()
+            yield self.parent.conn
+        finally:
+            self.parent.conn.close()
+
+    def push_config(self,config):
+        try:
+            self.parent.conn.load_candidate_config(config=config)
+            self.parent.conn.commit_config() 
+            return True
+        except:
+            return False 
 
 
 class OperationRegistry(object):
@@ -76,6 +106,16 @@ class OperationRegistry(object):
 
 registry = OperationRegistry()
 
+
+@registry.device_operation('apply_filter_config',family='iosxr')
+def apply_filter_config_iosxr(context,target,prefixes):
+
+    config = render_config(context.info['bgp_asn'],prefixes)
+    with context.get_connection('cli_xr'):
+        result = context.push_config(config)         
+    return result
+
+
 @registry.device_operation('get_facts',family='ios')
 def get_facts_ios(context,target):
     '''
@@ -88,7 +128,7 @@ def get_facts_ios(context,target):
         output2 = context.run_command('show inventory')
 
     facts = {}
-    facts['_id'] = target
+    facts['hostname'] = context.info['hostname']
     facts['chassis'] = re.search(r'"Chassis", DESCR: "(.+)"',output2).group(1).strip('\r')
     facts['uptime'] = re.search(r'(.+) uptime is (.+)',output1).group(2).strip('\r')
     facts['serial_number'] = re.search(r'SN: (.+)',output2).group(1).strip('\r')
@@ -110,7 +150,7 @@ def get_facts_junos(context,target):
         output2 = context.run_command('show system uptime')
 
     facts = {}
-    facts['_id'] = target
+    facts['hostname'] = context.info['hostname']
     #facts['chassis'] = 
     #facts['serial_number'] =
     #facts['uptime'] = re_search(uptime_regex,output2).group(1)

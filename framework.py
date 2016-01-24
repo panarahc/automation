@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from pymongo import MongoClient
-from operations import registry,NetconfConnector,SSHConnector
+from operations import registry,NetconfConnector,SSHXRConnector,SSHConnector
 from contextlib import contextmanager
 import re
 
@@ -18,6 +18,8 @@ class DeviceContext(object):
             self._method = SSHConnector(self)
         if connect_type == 'netconf':
             self._method = NetconfConnector(self)
+        if connect_type == 'cli_xr':
+            self._method = SSHXRConnector(self)
         return self._method.get_connection()
 
     def __getattr__(self,name):

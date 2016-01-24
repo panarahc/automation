@@ -1,0 +1,11 @@
+router static
+ address-family ipv4 unicast
+{%- for prefix in prefixes %}
+  {{ prefix }} null0
+{%- endfor %}
+
+router bgp {{ bgp_asn }}
+ address-family ipv4 unicast
+{%- for prefix in prefixes %}
+  network {{ prefix }}
+{%- endfor %}

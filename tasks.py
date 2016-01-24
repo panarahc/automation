@@ -5,6 +5,15 @@ from framework import CheckOperation
 
 
 @CheckOperation()
+def apply_filter_config(context,target,prefixes):
+    result = context.get_operation('apply_filter_config',target,prefixes)
+    if result:
+        print "PASS: Mitigation config applied."
+    else:
+        print "FAIL: Mitigation config not applied; operator involvement required."
+    return None
+
+@CheckOperation()
 def get_facts(context,target):
     facts = context.get_operation('get_facts',target)
     print facts
