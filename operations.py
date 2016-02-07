@@ -108,9 +108,9 @@ registry = OperationRegistry()
 
 
 @registry.device_operation('apply_filter_config',family='iosxr')
-def apply_filter_config_iosxr(context,target,prefixes):
+def apply_filter_config_iosxr(context,target,prefix):
 
-    config = render_config(context.info['bgp_asn'],prefixes)
+    config = render_config('filter_hijack_prefixes_iosxr_tmpl.j2',context.info['bgp_asn'],prefix)
     with context.get_connection('cli_xr'):
         result = context.push_config(config)         
     return result

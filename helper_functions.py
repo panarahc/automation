@@ -6,16 +6,15 @@ from netaddr import *
 from jinja2 import *
 
 
-def render_config(asn,pfxes):
+def render_config(tmpl,asn,prefix):
     subnets = list()
-    for prefix in pfxes:
-        prefixlen = prefix.split('/')[1]
-        _subnets = list(IPNetwork(prefix).subnet(int(prefixlen)+1))
-        for item in _subnets:
-            subnets.append(item) 
-    env = Environment(loader=FileSystemLoader('./'))
-    template = env.get_template('filter_hijack_prefixes_tmpl.j2')
-    output = template.render(bgp_asn=asn,prefixes=subnets)
+    prefixlen = prefix.split('/')[1]
+    _subnets = list(IPNetwork(prefix).subnet(int(prefixlen)+1))
+    for item in _subnets:
+        subnets.append(item) 
+    env = Environment(loader=FileSystemLoader('/home/amit/Code/automation'))
+    template = env.get_template(tmpl)
+    output = template.render(asn=asn,subnets=subnets)
     return output
 
 def parse_with_textfsm(template_file,raw_output):
