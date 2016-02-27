@@ -57,6 +57,16 @@ class SSHConnector(object):
         output = self.parent.conn.send_command(cmd)
         return output
 
+    def push_config(self,config,privileged=False):
+        if privileged:
+            self.parent.conn.enable()
+        commands = config.splitlines()
+        try:
+	    self.parent.conn.send_config_set(commands)
+            return True
+        except:
+            return False
+ 
 
 class SSHXRConnector(object):
     # username and password are defined as Class attributes
@@ -115,6 +125,15 @@ def apply_filter_config_iosxr(context,target,prefix):
         result = context.push_config(config)         
     return result
 
+@registry.device_operation('apply_filter_config',family='iosxe')
+def apply_filter_config_iosxe(context,target,prefix):
+    '''
+    '''
+    
+    config = render_template_config(template_name='filter_prefix_iosxe.j2',prefix=prefix)
+    with context.get_connection('cli'):
+        result = context.push_config(config,privileged=True)
+    return result
 
 @registry.device_operation('get_facts',family='ios')
 def get_facts_ios(context,target):
@@ -137,6 +156,26 @@ def get_facts_ios(context,target):
     facts['version'] = re_match(show_ver_regex,output1).groupdict()['version']
     return facts
 
+@registry.device_operation('get_facts',family='iosxe')
+def get_facts_iosxe(context,target):
+    '''
+    '''
+    model_regex = "cisco\s+(?P<model>\d+)\s+processor"
+    show_ver_regex = ".*Software\s\((?P<image>.+)\),\sVersion\s(?P<version>.+), RELEASE.*"
+
+    with context.get_connection('cli'):
+        output1 = context.run_command('show version')
+        output2 = context.run_command('show inventory')
+
+    facts = {}
+    facts['hostname'] = context.info['hostname']
+    facts['chassis'] = re.search(r'"Chassis", DESCR: "(.+)"',output2).group(1).strip('\r')
+    facts['uptime'] = re.search(r'(.+) uptime is (.+)',output1).group(2).strip('\r')
+    facts['serial_number'] = re.search(r'SN: (.+)',output2).group(1).strip('\r')
+    facts['model'] = re.search(r'cisco (.+) processor',output1).group(1)
+    facts['image'] = re_match(show_ver_regex,output1).groupdict()['image']
+    facts['version'] = re_match(show_ver_regex,output1).groupdict()['version']
+    return facts
 
 @registry.device_operation('get_facts',family='junos')
 def get_facts_junos(context,target):

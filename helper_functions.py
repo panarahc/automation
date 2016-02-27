@@ -6,6 +6,13 @@ from netaddr import *
 from jinja2 import *
 
 
+def render_template_config(**kwargs):
+    template_name = kwargs['template_name']
+    env = Environment(loader=FileSystemLoader('/home/amit/Code/automation'))
+    template = env.get_template(template_name)
+    output = template.render(data=kwargs)
+    return output
+
 def render_config(tmpl,asn,prefix):
     subnets = list()
     prefixlen = prefix.split('/')[1]
