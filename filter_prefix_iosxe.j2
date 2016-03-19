@@ -1,1 +1,4 @@
-ip prefix-list BAD_PREFIXES_IN permit {{ data.prefix }}
+{%- for prefix in data.prefixes %}
+ip prefix-list FILTER_INCONSISTENT_IN permit {{ prefix }}
+{% endfor -%}
+do clear ip bgp * soft out

@@ -5,9 +5,14 @@ from framework import CheckOperation
 
 
 @CheckOperation()
-def apply_filter_config(context,target,prefix):
-    result = context.get_operation('apply_filter_config',target,prefix)
-    return result
+def apply_filter_config(context,target,prefixes,result):
+    output = context.get_operation('apply_filter_config',target,prefixes)
+    result[target] = {'prefixes':(', ').join(prefixes), 'device_changed':output} 
+
+@CheckOperation()
+def filter_invalid_prefix_by_asn(context,target,contents,result):
+    output = context.get_operation('filter_invalid_prefix_by_asn',target,contents)
+    result[target] = {'data':contents, 'device_changed':output}
 
 @CheckOperation()
 def get_facts(context,target):
@@ -38,7 +43,7 @@ def get_bgp_neighbors(context,target):
     JUNOS: show bgp summary
 
     Arguments:
-	target - target device on which the command should be executed.
+	target - target device on which command is executed.
     '''
 
     neighbors = context.get_operation('get_bgp_neighbors',target)

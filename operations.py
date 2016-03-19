@@ -60,7 +60,7 @@ class SSHConnector(object):
     def push_config(self,config,privileged=False):
         if privileged:
             self.parent.conn.enable()
-        commands = config.splitlines()
+        commands = str(config).splitlines()
         try:
 	    self.parent.conn.send_config_set(commands)
             return True
@@ -118,7 +118,7 @@ registry = OperationRegistry()
 
 
 @registry.device_operation('apply_filter_config',family='iosxr')
-def apply_filter_config_iosxr(context,target,prefix):
+def apply_filter_config_iosxr(context,target,prefixes):
 
     config = render_config('filter_hijack_prefixes_iosxr_tmpl.j2',context.info['bgp_asn'],prefix)
     with context.get_connection('cli_xr'):
@@ -126,11 +126,21 @@ def apply_filter_config_iosxr(context,target,prefix):
     return result
 
 @registry.device_operation('apply_filter_config',family='iosxe')
-def apply_filter_config_iosxe(context,target,prefix):
+def apply_filter_config_iosxe(context,target,prefixes):
     '''
     '''
-    
-    config = render_template_config(template_name='filter_prefix_iosxe.j2',prefix=prefix)
+        
+    config = render_template_config(template_name='filter_prefix_iosxe.j2',prefixes=prefixes)
+    with context.get_connection('cli'):
+        result = context.push_config(config,privileged=True)
+    return result
+
+@registry.device_operation('filter_invalid_prefix_by_asn',family='iosxe')
+def filter_invalid_prefix_by_asn_iosxe(context,target,contents):
+    '''
+    '''
+                   
+    config = render_template_config(template_name='filter_invalid_prefix_by_asn_iosxe.j2',contents=contents)
     with context.get_connection('cli'):
         result = context.push_config(config,privileged=True)
     return result

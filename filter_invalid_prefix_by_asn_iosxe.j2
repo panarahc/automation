@@ -1,0 +1,6 @@
+{%- for item in data.contents %}
+ip as-path access-list 100 permit {{ item.asn }}
+!
+ip prefix-list FILTER_INVALID_IN permit {{ item.prefix }}
+{% endfor %}
+do clear ip bgp * soft out
