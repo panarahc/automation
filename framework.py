@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
 from pymongo import MongoClient
-from operations import registry,NetconfConnector,SSHXRConnector,SSHConnector
+from operations import registry,NetconfConnector,SSHXRConnector
 from contextlib import contextmanager
 import re
+import ios
+import junos
 
 
 class OSNotSupported:
@@ -14,16 +16,21 @@ class OSNotSupported:
 class DeviceContext(object):
 
     def get_connection(self,connect_type):
+        #print self.__dict__
         if connect_type == 'cli':
-            self._method = SSHConnector(self)
+            if self.info['family'] == 'ios' or self.info['family'] == 'iosxe':
+                self._method = ios.CLI(self.info['_id'])
+            if self.info['family'] == 'junos':
+                self._method = junos.CLI(self.info['_id'])
         if connect_type == 'netconf':
             self._method = NetconfConnector(self)
         if connect_type == 'cli_xr':
             self._method = SSHXRConnector(self)
-        return self._method.get_connection()
+        #return self._method.get_connection()
+        return self._method.connect()
 
-    def __getattr__(self,name):
-        return getattr(self._method,name)
+    #def __getattr__(self,name):
+    #    return getattr(self._method,name)
 
     def get_operation(self,check,*args,**kwargs):
         device_family = self.info['family']

@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-from netmiko import ConnectHandler
 from contextlib import contextmanager
 from ncclient import manager
 from helper_functions import * 
@@ -28,45 +27,10 @@ class NetconfConnector(object):
         finally:
             self.parent.conn.close_session() 
 
-    def run_command(self,cmd):
+    def execute(self,cmd):
         output = self.parent.conn.command(command=cmd,format='xml')
         return output
 
-
-class SSHConnector(object):
-    # username and password are defined as Class attributes
-    user = 'test123'
-    pwd = 'test123'
-
-    def __init__(self,parent):
-        self.parent = parent
-
-    @contextmanager
-    def get_connection(self):
-        try:
-            hostname = self.parent.info['hostname']
-            ip_address = self.parent.info['_id']
-            device_type = self.parent.info['family']
-            device = {'device_type':device_type,'ip':ip_address,'username':SSHConnector.user,'password':SSHConnector.pwd}
-            self.parent.conn = ConnectHandler(**device)
-            yield self.parent.conn
-        finally:
-            self.parent.conn.disconnect()
-
-    def run_command(self,cmd):
-        output = self.parent.conn.send_command(cmd)
-        return output
-
-    def push_config(self,config,privileged=False):
-        if privileged:
-            self.parent.conn.enable()
-        commands = str(config).splitlines()
-        try:
-	    self.parent.conn.send_config_set(commands)
-            return True
-        except:
-            return False
- 
 
 class SSHXRConnector(object):
     # username and password are defined as Class attributes
@@ -125,14 +89,14 @@ def apply_filter_config_iosxr(context,target,prefixes):
         result = context.push_config(config)         
     return result
 
-@registry.device_operation('apply_filter_config',family='iosxe')
-def apply_filter_config_iosxe(context,target,prefixes):
+@registry.device_operation('apply_filter_config',family='ios')
+def apply_filter_config_ios(context,target,prefixes):
     '''
     '''
         
     config = render_template_config(template_name='filter_prefix_iosxe.j2',prefixes=prefixes)
-    with context.get_connection('cli'):
-        result = context.push_config(config,privileged=True)
+    with context.get_connection('cli') as cli, cli.authorize():
+        result = cli.configure(config)
     return result
 
 @registry.device_operation('filter_invalid_prefix_by_asn',family='iosxe')
@@ -152,18 +116,17 @@ def get_facts_ios(context,target):
     model_regex = ".*Cisco\s(?P<model>\d+).*"
     show_ver_regex = ".*Software\s\((?P<image>.+)\),\sVersion\s(?P<version>.+), RELEASE.*"
 
-    with context.get_connection('cli'):
-        output1 = context.run_command('show version')
-        output2 = context.run_command('show inventory')
+    with context.get_connection('cli') as cli:
+        output = cli.execute(['show version','show inventory'])
 
     facts = {}
     facts['hostname'] = context.info['hostname']
-    facts['chassis'] = re.search(r'"Chassis", DESCR: "(.+)"',output2).group(1).strip('\r')
-    facts['uptime'] = re.search(r'(.+) uptime is (.+)',output1).group(2).strip('\r')
-    facts['serial_number'] = re.search(r'SN: (.+)',output2).group(1).strip('\r')
-    facts['model'] = re_match(model_regex,output1).groupdict()['model']
-    facts['image'] = re_match(show_ver_regex,output1).groupdict()['image']
-    facts['version'] = re_match(show_ver_regex,output1).groupdict()['version']
+    facts['chassis'] = re.search(r'"Chassis", DESCR: "(.+)"',output[1]).group(1).strip('\r')
+    facts['uptime'] = re.search(r'(.+) uptime is (.+)',output[0]).group(2).strip('\r')
+    facts['serial_number'] = re.search(r'SN: (.+)',output[1]).group(1).strip('\r')
+    facts['model'] = re_match(model_regex,output[0]).groupdict()['model']
+    facts['image'] = re_match(show_ver_regex,output[0]).groupdict()['image']
+    facts['version'] = re_match(show_ver_regex,output[0]).groupdict()['version']
     return facts
 
 @registry.device_operation('get_facts',family='iosxe')
@@ -173,18 +136,17 @@ def get_facts_iosxe(context,target):
     model_regex = "cisco\s+(?P<model>\d+)\s+processor"
     show_ver_regex = ".*Software\s\((?P<image>.+)\),\sVersion\s(?P<version>.+), RELEASE.*"
 
-    with context.get_connection('cli'):
-        output1 = context.run_command('show version')
-        output2 = context.run_command('show inventory')
+    with context.get_connection('cli') as cli:
+        output = cli.execute(['show version','show inventory'])
 
     facts = {}
     facts['hostname'] = context.info['hostname']
-    facts['chassis'] = re.search(r'"Chassis", DESCR: "(.+)"',output2).group(1).strip('\r')
-    facts['uptime'] = re.search(r'(.+) uptime is (.+)',output1).group(2).strip('\r')
-    facts['serial_number'] = re.search(r'SN: (.+)',output2).group(1).strip('\r')
-    facts['model'] = re.search(r'cisco (.+) processor',output1).group(1)
-    facts['image'] = re_match(show_ver_regex,output1).groupdict()['image']
-    facts['version'] = re_match(show_ver_regex,output1).groupdict()['version']
+    facts['chassis'] = re.search(r'"Chassis", DESCR: "(.+)"',output[1]).group(1).strip('\r')
+    facts['uptime'] = re.search(r'(.+) uptime is (.+)',output[0]).group(2).strip('\r')
+    facts['serial_number'] = re.search(r'SN: (.+)',output[1]).group(1).strip('\r')
+    facts['model'] = re.search(r'cisco (.+) processor',output[0]).group(1)
+    facts['image'] = re_match(show_ver_regex,output[0]).groupdict()['image']
+    facts['version'] = re_match(show_ver_regex,output[0]).groupdict()['version']
     return facts
 
 @registry.device_operation('get_facts',family='junos')
@@ -194,17 +156,16 @@ def get_facts_junos(context,target):
     model_regex = "Model:\s+(\S+)"
     version_regex = "JUNOS Base\s.*\s\[(\S+)\]"
  
-    with context.get_connection('cli'):
-        output1 = context.run_command('show version')
-        output2 = context.run_command('show system uptime')
+    with context.get_connection('cli') as cli:
+        output = cli.execute(['show version','show system uptime'])
 
     facts = {}
     facts['hostname'] = context.info['hostname']
     #facts['chassis'] = 
     #facts['serial_number'] =
-    #facts['uptime'] = re_search(uptime_regex,output2).group(1)
-    facts['model'] = re_search(model_regex,output1).group(1)
-    facts['version'] = re_search(version_regex,output1).group(1)   
+    #facts['uptime'] = re_search(uptime_regex,output[1]).group(1)
+    facts['model'] = re_search(model_regex,output[0]).group(1)
+    facts['version'] = re_search(version_regex,output[0]).group(1)   
     return facts        
 
 @registry.device_operation('get_prefixes_received_from_neighbor',family='ios')
@@ -214,9 +175,9 @@ def get_prefixes_received_from_neighbor_ios(context,target,neighbor):
     '''
     command = 'show ip bgp neighbor {} received-routes'.format(neighbor)
     
-    with context.get_connection('cli'):
-        output = context.run_command(command)
-    
+    with context.get_connection('cli') as cli:
+        output = cli.execute(command)
+   
     template = 'ios_show_ip_bgp.tmpl'
     result = parse_with_textfsm(template,output)
     prefixes = []
@@ -224,7 +185,6 @@ def get_prefixes_received_from_neighbor_ios(context,target,neighbor):
         if row[1]:
             prefixes.append(row[1]) 
     return prefixes  
-
 
 @registry.device_operation('get_prefixes_received_from_neighbor',family='junos')
 def get_prefixes_received_from_neighbor_junos(context,target,neighbor):
@@ -234,7 +194,7 @@ def get_prefixes_received_from_neighbor_junos(context,target,neighbor):
     command = 'show route receive-protocol bgp {}'.format(neighbor)
     
     with context.get_connection('netconf'):
-        output = context.run_command(command)
+        output = context.execute(command)
 
     prefixes_xpath = 'route-information/route-table/rt/rt-destination'
     parsed_output = output.xpath(prefixes_xpath)
@@ -253,7 +213,7 @@ def get_bgp_neighbors_ios(context,target):
     command = 'show ip bgp summary'
 
     with context.get_connection('cli'):
-        output = context.run_command(command)
+        output = context.execute(command)
 
     template = 'ios_show_ip_bgp_summary.tmpl'
     bgp_neighbors = parse_with_textfsm(template,output)
@@ -269,7 +229,7 @@ def get_bgp_neighbors_junos(context,target):
     command = 'show bgp summary'
 
     with context.get_connection('netconf'):
-        output = context.run_command(command)
+        output = context.execute(command)
 
     neighbor_xpath = 'bgp-information/bgp-peer/peer-address'
     asn_xpath = 'bgp-information/bgp-peer/peer-as'
@@ -284,11 +244,9 @@ def get_bgp_neighbors_junos(context,target):
 def get_lldp_neighbors_ios(context,target):
     command = 'show lldp neighbors'
 
-    #context.get_connection('cli')
-    #with context.get_connection('cli') as cli:
-    #    output = cli.run_command(command)
+    with context.get_connection('cli'):
+        output = context.execute(command)
 
-    output = open('cisco_lldp_neighbors.txt').read()
     result = parse_with_textfsm('cisco_ios_show_lldp_neighbors.tmpl',output)
     return result  
 

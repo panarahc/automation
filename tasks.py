@@ -5,9 +5,9 @@ from framework import CheckOperation
 
 
 @CheckOperation()
-def apply_filter_config(context,target,prefixes,result):
+def apply_filter_config(context,target,prefixes):
     output = context.get_operation('apply_filter_config',target,prefixes)
-    result[target] = {'prefixes':(', ').join(prefixes), 'device_changed':output} 
+    #result[target] = {'prefixes':(', ').join(prefixes), 'device_changed':output} 
 
 @CheckOperation()
 def filter_invalid_prefix_by_asn(context,target,contents,result):
