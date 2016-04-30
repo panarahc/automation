@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from pymongo import MongoClient
-from operations import registry,NetconfConnector,SSHXRConnector
+from operations import registry
 from contextlib import contextmanager
 import re
 import ios
@@ -23,18 +23,14 @@ class DeviceContext(object):
             if self.info['family'] == 'junos':
                 self._method = junos.CLI(self.info['_id'])
         if connect_type == 'netconf':
-            self._method = NetconfConnector(self)
-        if connect_type == 'cli_xr':
-            self._method = SSHXRConnector(self)
-        #return self._method.get_connection()
+            self._method = junos.Netconf(self.info['_id'])
         return self._method.connect()
 
-    #def __getattr__(self,name):
-    #    return getattr(self._method,name)
-
-    def get_operation(self,check,*args,**kwargs):
+    def get_operation(self,check):
         device_family = self.info['family']
         func_to_run = registry.func_map[check][device_family]
+        args = self.args
+        kwargs = self.kwargs
         result = func_to_run(self,*args,**kwargs)
         return result
 
@@ -63,6 +59,8 @@ class CheckOperation(object):
     def __call__(self,func):
         def wrap(*args,**kwargs):               
             # The first argument MUST be 'target'
+            self.device_context.args = args
+            self.device_context.kwargs = kwargs
             target = args[0]
             with self.get_db_connection():
                 device_info = self.get_context(target)
@@ -73,4 +71,5 @@ class CheckOperation(object):
             #else:
 	    #    raise OSNotSupported(device_info['family'],device_info['version'],target)
         return wrap
+
 

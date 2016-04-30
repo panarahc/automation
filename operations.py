@@ -3,62 +3,8 @@
 from contextlib import contextmanager
 from ncclient import manager
 from helper_functions import * 
-from pyIOSXR import IOSXR
 import textfsm
 import re
-
-
-class NetconfConnector(object):
-
-    user = 'test123'
-    pwd = 'test123'
-
-    def __init__(self,parent):
-        self.parent = parent
-
-    @contextmanager
-    def get_connection(self):
-        try:
-            hostname = self.parent.info['hostname']
-            ip_address = self.parent.info['_id']
-            device_type = self.parent.info['family']
-            self.parent.conn = manager.connect(host=ip_address,port=830,username=NetconfConnector.user,password=NetconfConnector.pwd,timeout=3,device_params={'name':device_type},hostkey_verify=False)
-            yield self.parent.conn
-        finally:
-            self.parent.conn.close_session() 
-
-    def execute(self,cmd):
-        output = self.parent.conn.command(command=cmd,format='xml')
-        return output
-
-
-class SSHXRConnector(object):
-    # username and password are defined as Class attributes
-    user = 'test123'
-    pwd = 'test123'
-
-    def __init__(self,parent):
-        self.parent = parent
-
-    @contextmanager
-    def get_connection(self):
-        try:
-            hostname = self.parent.info['hostname']
-            ip_address = self.parent.info['_id']
-            device_type = self.parent.info['family']
-            self.parent.conn = IOSXR(hostname=ip_address,username=SSHXRConnector.user,password=SSHXRConnector.pwd)
-            self.parent.conn.open()
-            yield self.parent.conn
-        finally:
-            self.parent.conn.close()
-
-    def push_config(self,config):
-        try:
-            self.parent.conn.load_candidate_config(config=config)
-            self.parent.conn.commit_config() 
-            return True
-        except:
-            return False 
 
 
 class OperationRegistry(object):
@@ -79,6 +25,30 @@ class OperationRegistry(object):
 
 
 registry = OperationRegistry()
+
+@registry.device_operation('get_interfaces',family='junos')
+def get_interfaces_junos(context,target,interfaces='all'):
+    '''
+    Executes 'show interfaces <interface>' command and returns a dict of interfaces with all its attributes.
+
+    Arguments:
+        target: Target device
+        interfaces: (Optional) A comma-separated list of interfaces. If not specified, all interfaces are collected.
+    '''
+
+    intf_list = list()
+
+    if interfaces != 'all':
+        intf_list = interfaces.split(',')
+        commands = [ 'show interfaces {}'.format(intf) for intf in intf_list ]
+    else:
+        commands = ['show interfaces']
+
+    with context.get_connection('netconf') as nc:
+        output = nc.execute(commands)
+
+    print output
+    return None
 
 
 @registry.device_operation('apply_filter_config',family='iosxr')

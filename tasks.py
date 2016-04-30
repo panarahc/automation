@@ -16,9 +16,17 @@ def filter_invalid_prefix_by_asn(context,target,contents,result):
 
 @CheckOperation()
 def get_facts(context,target):
-    facts = context.get_operation('get_facts',target)
+    facts = context.get_operation('get_facts')
     print facts
     return None
+
+@CheckOperation()
+def get_interfaces(context,target, interfaces='all'):
+    print context.__dict__
+    interfaces = context.get_operation('get_interfaces')
+    print interfaces
+    return None
+
 
 @CheckOperation()
 def get_prefixes_received_from_neighbor(context,target,neighbor):
