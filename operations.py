@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from contextlib import contextmanager
+from collections import defaultdict
 from ncclient import manager
 from helper_functions import * 
 import textfsm
@@ -9,14 +10,11 @@ import re
 
 class OperationRegistry(object):
     def __init__(self):
-       self.func_map = {}
+       self.func_map = defaultdict(dict)
 
     def device_operation(self,f_name,family=None):
         def func_decorator(func):
-            try:
-                self.func_map[f_name].update({family:func})
-            except:
-                self.func_map[f_name] = {family:func}
+            self.func_map[f_name].update({family:func})
             #print self.func_map
             def func_wrapper(*args,**kwargs):
                 return func(*args,**kwargs)
