@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import re
-from automation.framework import OperationRegistry
+from operation_registry import OperationRegistry
 
 
 registry = OperationRegistry()

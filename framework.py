@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from pymongo import MongoClient
-from operations import registry
+from auto_operations.operation_registry import OperationRegistry
 from contextlib import contextmanager
 import re
 import ios
@@ -28,7 +28,7 @@ class DeviceContext(object):
 
     def get_operation(self,check):
         device_family = self.info['family']
-        func_to_run = registry.func_map[check][device_family]
+        func_to_run = OperationRegistry.func_map[check][device_family]
         args = self.args
         kwargs = self.kwargs
         result = func_to_run(self,*args,**kwargs)

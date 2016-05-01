@@ -27,6 +27,11 @@ def get_interfaces(context,target, interfaces='all'):
     print interfaces
     return None
 
+@CheckOperation()
+def get_bgp_asn(context,target):
+    asn = context.get_operation('get_bgp_asn')
+    print "BGP ASN configured on device {} is {}".format(target,asn)
+    return None
 
 @CheckOperation()
 def get_prefixes_received_from_neighbor(context,target,neighbor):
