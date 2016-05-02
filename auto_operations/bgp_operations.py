@@ -9,8 +9,8 @@ import re
 registry = OperationRegistry()
 
 
-@registry.device_operation('get_bgp_asn',family='iosxe')
-def get_bgp_asn_iosxe(context,target):
+@registry.device_operation('get_bgp_asn',family='ios,iosxe')
+def get_bgp_asn(context,target):
     '''
     Executes "show run | include router bgp" command and parses the output
     to get BGP AS number.
@@ -21,6 +21,27 @@ def get_bgp_asn_iosxe(context,target):
 
     ASN_REGEX = re.compile(r'router bgp (?P<asn>\d+)')
     commands = ['show run | include router bgp']
+
+    with context.get_connection('cli') as cli:
+        output = cli.execute(commands)
+
+    if output:
+        asn = re.search(ASN_REGEX, output[0]).group('asn')
+    return asn
+
+
+@registry.device_operation('get_bgp_asn',family='junos')
+def get_bgp_asn(context,target):
+    '''
+    Executes "show configuration routing-options autonomous-system" command and parses the output
+    to get BGP AS number.
+
+    Arguments:
+        target: Target device
+    '''
+
+    ASN_REGEX = re.compile(r'(?P<asn>\d+)')
+    commands = ['show configuration routing-options autonomous-system']
 
     with context.get_connection('cli') as cli:
         output = cli.execute(commands)

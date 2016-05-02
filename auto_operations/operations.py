@@ -40,45 +40,29 @@ def filter_invalid_prefix_by_asn_iosxe(context,target,contents):
         result = context.push_config(config,privileged=True)
     return result
 
-@registry.device_operation('get_facts',family='ios')
-def get_facts_ios(context,target):
+
+@registry.device_operation('get_facts',family='ios,iosxe')
+def get_facts(context,target):
     '''
     '''
-    model_regex = ".*Cisco\s(?P<model>\d+).*"
-    show_ver_regex = ".*Software\s\((?P<image>.+)\),\sVersion\s(?P<version>.+), RELEASE.*"
+    
+    HOSTNAME_RE = r"(?P<hostname>\w+)\s+uptime.*"
+    MODEL_RE = "PID:\s+(?P<model>\S+).*"
+    SHOW_VER_RE = ".*Software\s\((?P<image>.+)\),\sVersion\s(?P<version>.+), RELEASE.*"
 
     with context.get_connection('cli') as cli:
         output = cli.execute(['show version','show inventory'])
 
     facts = {}
-    facts['hostname'] = context.info['hostname']
+    facts['hostname'] = re.search(HOSTNAME_RE,output[0]).group('hostname') 
     facts['chassis'] = re.search(r'"Chassis", DESCR: "(.+)"',output[1]).group(1).strip('\r')
     facts['uptime'] = re.search(r'(.+) uptime is (.+)',output[0]).group(2).strip('\r')
     facts['serial_number'] = re.search(r'SN: (.+)',output[1]).group(1).strip('\r')
-    facts['model'] = re.match(model_regex,output[0]).groupdict()['model']
-    facts['image'] = re.match(show_ver_regex,output[0]).groupdict()['image']
-    facts['version'] = re.match(show_ver_regex,output[0]).groupdict()['version']
+    facts['model'] = re.search(MODEL_RE,output[1]).group('model')
+    facts['image'] = re.search(SHOW_VER_RE,output[0]).group('image')
+    facts['version'] = re.search(SHOW_VER_RE,output[0]).group('version')
     return facts
 
-@registry.device_operation('get_facts',family='iosxe')
-def get_facts_iosxe(context,target):
-    '''
-    '''
-    model_regex = "cisco\s+(?P<model>\d+)\s+processor"
-    show_ver_regex = ".*Software\s\((?P<image>.+)\),\sVersion\s(?P<version>.+), RELEASE.*"
-
-    with context.get_connection('cli') as cli:
-        output = cli.execute(['show version','show inventory'])
-
-    facts = {}
-    facts['hostname'] = context.info['hostname']
-    facts['chassis'] = re.search(r'"Chassis", DESCR: "(.+)"',output[1]).group(1).strip('\r')
-    facts['uptime'] = re.search(r'(.+) uptime is (.+)',output[0]).group(2).strip('\r')
-    facts['serial_number'] = re.search(r'SN: (.+)',output[1]).group(1).strip('\r')
-    facts['model'] = re.search(r'cisco (.+) processor',output[0]).group(1)
-    facts['image'] = re.match(show_ver_regex,output[0]).groupdict()['image']
-    facts['version'] = re.match(show_ver_regex,output[0]).groupdict()['version']
-    return facts
 
 @registry.device_operation('get_facts',family='junos')
 def get_facts_junos(context,target):
