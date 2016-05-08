@@ -1,0 +1,19 @@
+Value Required neighbor (\d+.\d+.\d+.\d+)
+Value asn (\d+)
+Value msg_received (\d+)
+Value msg_sent (\d+)
+Value outQ (\d+)
+Value flaps (\d+)
+Value up_down (\S+\s\S*)
+Value state_prefixes ([\w\d]+)
+
+Start
+  ^Peer.* -> Routes
+
+Routes
+  # Scrub "Peer" line
+  ^Peer\s+
+  #
+  # Match lines with actual neighbor information
+  ^${neighbor}\s+${asn}\s+${msg_received}\s+${msg_sent}\s+${outQ}\s+${flaps}\s+${up_down}\s+${state_prefixes} -> Record
+

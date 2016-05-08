@@ -3,6 +3,9 @@
 from collections import defaultdict
 from ncclient import manager
 from operation_registry import OperationRegistry
+from StringIO import StringIO
+from lxml import etree
+import helpers
 import re
 
 
@@ -12,117 +15,162 @@ registry = OperationRegistry()
 @registry.device_operation('get_bgp_asn',family='ios,iosxe')
 def get_bgp_asn(context,target):
     '''
-    Executes "show run | include router bgp" command and parses the output
-    to get BGP AS number.
+    IOS/IOS-XE: show run | include router bgp
 
-    Arguments:
-    	target: Target device
+    Returns:
+    	BGP AS number
     '''
 
-    ASN_REGEX = re.compile(r'router bgp (?P<asn>\d+)')
+    ASN_RE = re.compile(r'router bgp (?P<asn>\d+)')
     commands = ['show run | include router bgp']
 
     with context.get_connection('cli') as cli:
         output = cli.execute(commands)
 
     if output:
-        asn = re.search(ASN_REGEX, output[0]).group('asn')
+        asn = re.search(ASN_RE, output[0]).group('asn')
     return asn
 
 
 @registry.device_operation('get_bgp_asn',family='junos')
 def get_bgp_asn(context,target):
     '''
-    Executes "show configuration routing-options autonomous-system" command and parses the output
-    to get BGP AS number.
+    JUNOS: show configuration routing-options autonomous-system
 
-    Arguments:
-        target: Target device
+    Returns:
+    	BGP AS number
     '''
 
-    ASN_REGEX = re.compile(r'(?P<asn>\d+)')
+    ASN_RE = re.compile(r'(?P<asn>\d+)')
     commands = ['show configuration routing-options autonomous-system']
 
     with context.get_connection('cli') as cli:
         output = cli.execute(commands)
 
     if output:
-        asn = re.search(ASN_REGEX, output[0]).group('asn')
+        asn = re.search(ASN_RE, output[0]).group('asn')
     return asn
 
  
-@registry.device_operation('get_prefixes_received_from_neighbor',family='ios')
-def get_prefixes_received_from_neighbor_ios(context,target,neighbor):
+@registry.device_operation('get_prefixes_received_from_neighbor',family='ios,iosxe')
+def get_prefixes_received_from_neighbor(context,target,neighbor,table=None):
     '''
-    Executes show ip bgp neighbor <neighbor> received-routes command and returns a list of prefixes.
+    IOS/IOS-XE: show ip bgp neighbor <neighbor> received-routes
+
+    Returns:
+	A dict of prefixes with its BGP attributes
     '''
-    command = 'show ip bgp neighbor {} received-routes'.format(neighbor)
+
+    commands = ['show ip bgp neighbor {} received-routes'.format(neighbor)]
 
     with context.get_connection('cli') as cli:
-        output = cli.execute(command)
+        output = cli.execute(commands)
 
-    template = 'ios_show_ip_bgp.tmpl'
-    result = parse_with_textfsm(template,output)
-    prefixes = []
+    template = 'bgp_table_ios.tmpl'
+    result = helpers.template_parser(template,output[0])
+    prefixes = dict()
+
     for row in result:
-        if row[1]:
-            prefixes.append(row[1])
+        prefixes[row[1]] = {'nexthop':row[2],
+			    'metric':row[3],
+			    'local_pref':row[4],
+			    'weight':row[5],
+			    'as_path':row[6],
+			    'origin':row[7],
+			    'status_codes':row[0]}
+
     return prefixes
 
 
 @registry.device_operation('get_prefixes_received_from_neighbor',family='junos')
-def get_prefixes_received_from_neighbor_junos(context,target,neighbor):
+def get_prefixes_received_from_neighbor(context,target,neighbor,table='inet.0'):
     '''
-    Executes show route receive-protocol bgp <neighbor> command and returns a list of prefixes.
+    JUNOS: show route receive-protocol bgp <neighbor>
+
+    Returns:
+   	A dict of prefixes with its BGP attributes
     '''
-    command = 'show route receive-protocol bgp {}'.format(neighbor)
 
-    with context.get_connection('netconf'):
-        output = context.execute(command)
+    commands = ['show route receive-protocol bgp {} table {}'.format(neighbor,table)]
 
-    prefixes_xpath = 'route-information/route-table/rt/rt-destination'
-    parsed_output = output.xpath(prefixes_xpath)
-    prefixes = [ item.text for item in parsed_output ]
+    with context.get_connection('cli') as cli:
+        output = cli.execute(commands)
+
+    template = 'bgp_table_junos.tmpl'
+    result = helpers.template_parser(template, output[0])
+    prefixes = dict()
+
+    for row in result:
+        prefixes[row[1]] = {'nexthop':row[2],
+                            'metric':row[3],
+                            'local_pref':row[4],
+                            'as_path':row[5],
+                            'origin':row[6],
+                            'status_codes':row[0]}
+
     return prefixes
 
 
-@registry.device_operation('get_bgp_neighbors',family='ios')
-def get_bgp_neighbors_ios(context,target):
+@registry.device_operation('get_bgp_neighbors',family='ios,iosxe')
+def get_bgp_neighbors(context,target):
     '''
-    Executes 'show ip bgp summary' command and returns a list of lists with BGP neighbors and corresponding ASN.
+    IOS/IOS-XE: show ip bgp summary
 
-    Sample output:
-        [['10.1.2.2', '200'], ['10.1.3.3', '300']]
+    Returns:
+	A dict of neighbors and neighbor attributes
     '''
-    command = 'show ip bgp summary'
 
-    with context.get_connection('cli'):
-        output = context.execute(command)
+    commands = ['show ip bgp summary']
 
-    template = 'ios_show_ip_bgp_summary.tmpl'
-    bgp_neighbors = parse_with_textfsm(template,output)
-    return bgp_neighbors
+    with context.get_connection('cli') as cli:
+        output = cli.execute(commands)
+
+    template = 'bgp_summary_ios.tmpl'
+    result = helpers.template_parser(template,output[0])
+    neighbors = dict()
+
+    for row in result:
+        neighbors[row[0]] = {'version':row[1],
+                             'asn':row[2],
+                             'msg_rcvd':row[3],
+                             'msg_sent':row[4],
+                             'table_version':row[5],
+                             'in_queue':row[6],
+                             'out_queue':row[7],
+                             'up_down':row[8],
+                             'state_prefixes':row[9]}
+
+    return neighbors
 
 
 @registry.device_operation('get_bgp_neighbors',family='junos')
-def get_bgp_neighbors_junos(context,target):
+def get_bgp_neighbors(context,target):
     '''
-    Executes 'show bgp summary' command and returns a list of lists with BGP neighbors and corresponding ASN.
+    JUNOS: show bgp summary
+
+    Returns:
+	A dict of neighbors and neighbor attributes
     '''
 
     commands = ['show bgp summary']
 
-    with context.get_connection('netconf') as nc:
-        output = nc.execute(commands)
+    with context.get_connection('cli') as cli:
+        output = cli.execute(commands)
 
-    neighbor_xpath = 'bgp-information/bgp-peer/peer-address'
-    asn_xpath = 'bgp-information/bgp-peer/peer-as'
+    template = 'bgp_summary_junos.tmpl'
+    result = helpers.template_parser(template,output[0])
+    neighbors = dict()
 
-    parsed_neighbor = output[0].xpath(neighbor_xpath)
-    parsed_asn = output[0].xpath(asn_xpath)
-    bgp_neighbors = [ [i.text,j.text] for i,j in zip(parsed_neighbor,parsed_asn) ]
-    return bgp_neighbors
+    for row in result:
+        neighbors[row[0]] = {'asn': row[1],
+                             'msg_rcvd':row[2],
+                             'msg_sent':row[3],
+                             'out_queue':row[4],
+                             'flaps':row[5],
+                             'up_down':row[6],
+                             'state_prefixes':row[7]}
 
+    return neighbors
 
 
 

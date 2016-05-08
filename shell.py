@@ -23,10 +23,10 @@ CLI_ERRORS_RE = [
     re.compile(r"% ?Error"),
     re.compile(r"^% \w+", re.M),
     re.compile(r"% ?Bad secret"),
-    re.compile(r"invalid input", re.I),
-    re.compile(r"(?:incomplete|ambiguous) command", re.I),
+    re.compile(r"% Invalid input"),
+    re.compile(r"(?:Incomplete|ambiguous) command"),
     re.compile(r"connection timed out", re.I),
-    re.compile(r"[^\r\n]+ not found", re.I),
+    re.compile(r"[^\r\n]+ not found"),
     re.compile(r"'[^']' +returned error code: ?\d+"),
     re.compile(r"syntax error"),
     re.compile(r"unknown command")

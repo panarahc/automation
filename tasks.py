@@ -9,10 +9,12 @@ def apply_filter_config(context,target,prefixes):
     output = context.get_operation('apply_filter_config',target,prefixes)
     #result[target] = {'prefixes':(', ').join(prefixes), 'device_changed':output} 
 
+
 @CheckOperation()
 def filter_invalid_prefix_by_asn(context,target,contents,result):
     output = context.get_operation('filter_invalid_prefix_by_asn',target,contents)
     result[target] = {'data':contents, 'device_changed':output}
+
 
 @CheckOperation()
 def get_facts(context,target):
@@ -20,28 +22,49 @@ def get_facts(context,target):
     print facts
     return None
 
+
 @CheckOperation()
 def get_interfaces(context,target, interfaces='all'):
-    print context.__dict__
+    '''
+    Arguments:
+	target: Target device
+	interfaces: Default is 'all'. It also accepts a comma-separated list of interfaces eg. 'xe-0/0/1,xe-0/0/2'
+    '''
+
     interfaces = context.get_operation('get_interfaces')
     print interfaces
     return None
 
+
 @CheckOperation()
 def get_bgp_asn(context,target):
+    '''
+    Arguments:
+        target: Target device
+    ''' 
+
     asn = context.get_operation('get_bgp_asn')
     print "BGP ASN configured on device {} is {}".format(target,asn)
     return None
 
+
 @CheckOperation()
-def get_prefixes_received_from_neighbor(context,target,neighbor):
-    prefixes = context.get_operation('get_prefixes_received_from_neighbor',target,neighbor)
+def get_prefixes_received_from_neighbor(context,target,neighbor,table=None):
+    '''
+    Arguments:
+        target: Target device
+        neighbor: BGP neighbor IP address
+        table: By default, inet.0 (IPv4) routing tables for JUNOS
+    '''
+
+    prefixes = context.get_operation('get_prefixes_received_from_neighbor')
     print prefixes 
     return None
 
+
 @CheckOperation()
 def check_prefixes_received_from_neighbor(context,target,neighbor,prefixes):
-    received_prefixes = context.get_operation('get_prefixes_received_from_neighbor',target,neighbor)
+    received_prefixes = context.get_operation('get_prefixes_received_from_neighbor')
     for prefix in prefixes:
         if prefix in received_prefixes:
             print 'Prefix {} received from neighbor'.format(prefix)
@@ -49,20 +72,18 @@ def check_prefixes_received_from_neighbor(context,target,neighbor,prefixes):
             print 'Prefix {} not received from neighbor'.format(prefix)
     return None
 
+
 @CheckOperation()
 def get_bgp_neighbors(context,target):
     '''
-    IOS: show ip bgp summary
-    JUNOS: show bgp summary
-
     Arguments:
-	target - target device on which command is executed.
+	target: Target device
     '''
 
-    neighbors = context.get_operation('get_bgp_neighbors',target)
-    for neighbor in neighbors:
-        print neighbor[0] 
+    neighbors = context.get_operation('get_bgp_neighbors')
+    print neighbors 
     return None
+
 
 @CheckOperation()
 def get_lldp_neighbors(context,target):
@@ -76,7 +97,7 @@ def get_lldp_neighbors(context,target):
 	target - target device on which the command should be executed.
     '''
 
-    neighbors = context.get_operation('get_lldp_neighbors',target)
+    neighbors = context.get_operation('get_lldp_neighbors')
     print neighbors
     return None
 
