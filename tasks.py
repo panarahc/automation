@@ -81,8 +81,8 @@ def get_bgp_neighbors(context,target):
     '''
 
     neighbors = context.get_operation('get_bgp_neighbors')
-    print neighbors 
-    return None
+    #print neighbors 
+    return neighbors
 
 
 @CheckOperation()
