@@ -3,7 +3,7 @@
 from contextlib import contextmanager
 from collections import defaultdict
 from ncclient import manager
-from helper_functions import * 
+from helpers import * 
 from operation_registry import OperationRegistry
 import textfsm
 import re
