@@ -65,7 +65,7 @@ def get_facts(context,target):
 
 
 @registry.device_operation('get_facts',family='junos')
-def get_facts_junos(context,target):
+def get_facts(context,target):
 
     hostname_regex = r"Hostname: (.*)"
     uptime_regex = r"System booted:.*\((?P<uptime>.+) ago\)"

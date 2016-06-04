@@ -5,6 +5,17 @@ from framework import CheckOperation
 
 
 @CheckOperation()
+def apply_config(context,target,commands):
+    """
+    Arguments:
+	commands: A list of commands in string or list form."
+    """
+
+    result = context.get_operation('apply_config')
+    return result
+
+
+@CheckOperation()
 def apply_filter_config(context,target,prefixes):
     output = context.get_operation('apply_filter_config',target,prefixes)
     #result[target] = {'prefixes':(', ').join(prefixes), 'device_changed':output} 

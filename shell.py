@@ -19,6 +19,11 @@ CLI_PROMPTS_RE = [
     re.compile(r'[\r\n]?[a-zA-Z]{1}[a-zA-Z0-9-]*@[a-zA-Z0-9]*[>|#|%](?:\s*)$')
 ]
 
+CLI_INPUTS_RE = [
+    re.compile(r'Destination filename.*'),
+    re.compile(r'Overwrite the previous NVRAM.*')
+]
+
 CLI_ERRORS_RE = [
     re.compile(r"% ?Error"),
     re.compile(r"^% \w+", re.M),
@@ -62,7 +67,7 @@ class Command(object):
 
 class Shell(object):
 
-    def __init__(self, prompts_re=None, errors_re=None, kickstart=False):
+    def __init__(self, prompts_re=None, errors_re=None, inputs_re=None, kickstart=False):
         self.ssh = None
         self.shell = None
 
@@ -71,6 +76,7 @@ class Shell(object):
 
         self.prompts = prompts_re or CLI_PROMPTS_RE
         self.errors = errors_re or CLI_ERRORS_RE
+        self.inputs = inputs_re or CLI_INPUTS_RE
 
     def open(self, host, port=22, username=None, password=None,
             timeout=10, key_filename=None, pkey=None, look_for_keys=None,
@@ -156,6 +162,10 @@ class Shell(object):
         return "\n".join(cleaned)
 
     def read(self, response):
+        for regex in self.inputs:
+            if regex.search(response):
+                self.shell.sendall('\n')
+
         for regex in self.errors:
             if regex.search(response):
                 raise ShellError('matched error in response: %s' % response)
