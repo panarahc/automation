@@ -59,7 +59,9 @@ class CLI(object):
 
     def configure(self, commands):
         commands = to_list(commands)
-        commands.insert(0, 'configure terminal')
+        commands.insert(0, 'configure terminal revert timer idle 1')
+        commands.append('end')
+        commands.append('configure confirm')
         responses = self.execute(commands)
         responses.pop(0)
         return responses

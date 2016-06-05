@@ -30,8 +30,7 @@ def filter_invalid_prefix_by_asn(context,target,contents,result):
 @CheckOperation()
 def get_facts(context,target):
     facts = context.get_operation('get_facts')
-    print facts
-    return None
+    return facts
 
 
 @CheckOperation()
@@ -43,8 +42,7 @@ def get_interfaces(context,target, interfaces='all'):
     '''
 
     interfaces = context.get_operation('get_interfaces')
-    print interfaces
-    return None
+    return interfaces
 
 
 @CheckOperation()
@@ -55,8 +53,7 @@ def get_bgp_asn(context,target):
     ''' 
 
     asn = context.get_operation('get_bgp_asn')
-    print "BGP ASN configured on device {} is {}".format(target,asn)
-    return None
+    return asn
 
 
 @CheckOperation()
@@ -69,8 +66,7 @@ def get_prefixes_received_from_neighbor(context,target,neighbor,table=None):
     '''
 
     prefixes = context.get_operation('get_prefixes_received_from_neighbor')
-    print prefixes 
-    return None
+    return prefixes
 
 
 @CheckOperation()
@@ -92,7 +88,6 @@ def get_bgp_neighbors(context,target):
     '''
 
     neighbors = context.get_operation('get_bgp_neighbors')
-    #print neighbors 
     return neighbors
 
 
@@ -109,6 +104,5 @@ def get_lldp_neighbors(context,target):
     '''
 
     neighbors = context.get_operation('get_lldp_neighbors')
-    print neighbors
-    return None
+    return neighbors
 
