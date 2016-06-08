@@ -8,10 +8,24 @@ from framework import CheckOperation
 def apply_config(context,target,commands):
     """
     Arguments:
-	commands: A list of commands in string or list form."
+	commands: A list of commands.
     """
 
     result = context.get_operation('apply_config')
+    return result
+
+
+@CheckOperation()
+def get_device_traffic(context,target):
+    """
+    Check to get total traffic (pps) going through the device.
+    It uses get_interfaces_traffic operation.
+
+    Arguments:
+	target: Target device
+    """
+
+    result = context.get_operation('get_interfaces_traffic')
     return result
 
 
