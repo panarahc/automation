@@ -106,6 +106,20 @@ def get_bgp_neighbors(context,target):
 
 
 @CheckOperation()
+def get_bgp_peergroups(context,target):
+    '''
+    Arguments:
+	target: Target device
+
+    Returns:
+	A list of BGP peergroups configured on device.
+    '''
+
+    peergroups = context.get_operation('get_bgp_peergroups')
+    return peergroups
+
+
+@CheckOperation()
 def get_lldp_neighbors(context,target):
     '''
     IOS: show lldp neighbors

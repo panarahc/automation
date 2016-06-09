@@ -173,4 +173,21 @@ def get_bgp_neighbors(context,target):
     return neighbors
 
 
+@registry.device_operation('get_bgp_peergroups',family='ios')
+def get_bgp_peergroups(context,target):
+    '''
+    IOS: show run | begin router bgp
+
+    Returns:
+        A list of BGP peergroups configured. 
+    '''
+
+    PEERGROUP_RE = re.compile(r"\s*neighbor\s+(?P<peergroup>\S+)\s+peer-group\n") 
+    commands = ["show run | begin router bgp"]
+
+    with context.get_connection("cli") as cli:
+        output = cli.execute(commands)
+
+    peergroups = [ elem.group("peergroup") for elem in re.finditer(PEERGROUP_RE,output[0]) ]
+    return peergroups 
 
