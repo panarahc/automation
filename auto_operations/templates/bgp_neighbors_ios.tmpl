@@ -1,0 +1,12 @@
+Value Required neighbor (\d+.\d+.\d+.\d+)
+Value asn (\d+)
+Value desc (\S+)
+Value state (\S+)
+Value peergroup (\S*)
+
+Start
+  # Match lines with actual neighbor information
+  ^BGP neighbor is ${neighbor},\s+remote AS ${asn},\s 
+  ^\s+Description:\s*${desc}
+  ^\s+BGP\s*state\s*=\s*${state}[,\n] 
+  ^\s+${peergroup}\s+peer-group member -> Record

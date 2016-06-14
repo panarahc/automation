@@ -60,6 +60,16 @@ def get_interfaces(context,target, interfaces='all'):
 
 
 @CheckOperation()
+def get_ospf_neighbors(context, target):
+    '''
+    Gets OSPF neighbors and state on device.
+    '''
+
+    neighbors = context.get_operation('get_ospf_neighbors')
+    return neighbors
+
+
+@CheckOperation()
 def get_bgp_asn(context,target):
     '''
     Arguments:
@@ -103,6 +113,21 @@ def get_bgp_neighbors(context,target):
 
     neighbors = context.get_operation('get_bgp_neighbors')
     return neighbors
+
+
+@CheckOperation()
+def get_bgp_neighbors_state(context, target, neighbors="all"):
+    '''
+    Performs a get_bgp_neighbors_state operation and returns a dict
+    of form {neighbor:state}
+
+    Arguments:
+  	target: Target device
+	neighbors: A comma-separated list of BGP neighbor IP addresses. Default is all. 
+    '''
+
+    neighbors_state = context.get_operation('get_bgp_neighbors_state')
+    return neighbors_state
 
 
 @CheckOperation()

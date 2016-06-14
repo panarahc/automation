@@ -1,0 +1,14 @@
+Value Required neighbor (\S+)
+Value priority (\d+)
+Value state (\S+)
+Value neighbor_ip (\S+)
+Value local_intf (\S+)
+
+Start
+  ^Neighbor.* -> Routes
+
+Routes
+  ^Neighbor.*
+  #
+  ^${neighbor}\s+${priority}\s+${state}/\s*\S+\s+\S+\s+${neighbor_ip}\s+${local_intf} -> Record    
+

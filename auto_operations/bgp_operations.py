@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 from collections import defaultdict
-from ncclient import manager
 from operation_registry import OperationRegistry
 from StringIO import StringIO
 from lxml import etree
@@ -172,6 +171,41 @@ def get_bgp_neighbors(context,target):
 
     return neighbors
 
+
+@registry.device_operation('get_bgp_neighbors_state',family='ios')
+def get_bgp_neighbors_state(context,target,neighbors="all"):
+    '''
+    IOS: show ip bgp neighbors
+
+    Returns:
+        A list of dicts of BGP neighbors and state. 
+    '''
+
+    commands = list()
+
+    if neighbors == "all":
+        commands = ['show ip bgp neighbors']
+    else:
+        for neighbor in neighbors.split(","):
+            commands.append("show ip bgp neighbors {}".format(neighbor))
+
+    with context.get_connection("cli") as cli:
+        output = cli.execute(commands)
+    data = ("\n").join(output)
+
+    template = 'bgp_neighbors_ios.tmpl'
+    neighbors = list()
+    result = helpers.template_parser(template,data)
+
+    for elem in result:
+        neighbors.append({'neighbor':elem[0],
+			  'remote_asn':elem[1],
+                          'description':elem[2],
+                          'state':elem[3],
+                          'peergroup':elem[4]})
+
+    return neighbors
+           
 
 @registry.device_operation('get_bgp_peergroups',family='ios')
 def get_bgp_peergroups(context,target):

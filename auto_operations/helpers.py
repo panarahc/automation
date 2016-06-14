@@ -18,7 +18,7 @@ def render_config(tmpl,asn,prefix):
     return output
 
 def template_parser(filename,raw_output):
-    template_file = '/home/amit/Code/automation/auto_operations/templates/' + filename 
+    template_file = '/usr/local/bin/Code/automation/auto_operations/templates/' + filename 
     template_handler = open(template_file)
     re_table = textfsm.TextFSM(template_handler)
     result = re_table.ParseText(raw_output)
