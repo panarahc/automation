@@ -16,6 +16,34 @@ def apply_config(context,target,commands):
 
 
 @CheckOperation()
+def config_replace(context,target,filename):
+    """
+    Replaces running-config of the device with a new file.
+
+    Arguments:
+	filename: Config file to replace running-config.
+    """
+
+    command, result = context.get_operation('config_replace')
+    return command, result
+
+
+@CheckOperation()
+def get_config_diff(context, target, file1, file2):
+    """
+    Runs a diff between two files on the device and returns a diff.
+
+    Arguments:
+    	target: Target device
+	file1: Config file1 eg. system:running-config
+	file2: Config file2 eg. scp://file2
+    """
+
+    result = context.get_operation('get_config_diff')
+    return result
+
+
+@CheckOperation()
 def get_device_traffic(context,target):
     """
     Check to get total traffic (pps) going through the device.
