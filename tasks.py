@@ -24,8 +24,8 @@ def config_replace(context,target,filename):
 	filename: Config file to replace running-config.
     """
 
-    command, result = context.get_operation('config_replace')
-    return command, result
+    result = context.get_operation('config_replace')
+    return result
 
 
 @CheckOperation()
