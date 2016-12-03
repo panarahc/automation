@@ -1,0 +1,14 @@
+Value local (\S+)
+Value remote (Pop Label|No Label|\d+)
+Value prefix (\S+)
+Value interface (\S+)
+Value nexthop (\S+)
+
+Start
+  ^Local.* -> Routes
+
+Routes
+  ^Local.*
+  #
+  ^${local}\s+${remote}\s+${prefix}\s+\S+\s+${interface}\s+${nexthop} -> Record    
+

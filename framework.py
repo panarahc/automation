@@ -45,13 +45,13 @@ class CheckOperation(object):
     def get_db_connection(self):
         try:
             self.connection = MongoClient('mongodb://localhost',port=27017)
-            self.db = self.connection.ipam
+            self.db = self.connection.inventory
             yield
         finally:
             self.connection.close()
 
     def get_context(self,target):
-        self.device = self.db.loopbacks
+        self.device = self.db.devices
         query = {"_id":target}
         result = self.device.find_one(query)
         return result

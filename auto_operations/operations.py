@@ -5,7 +5,7 @@ from collections import defaultdict
 from ncclient import manager
 from helpers import * 
 from operation_registry import OperationRegistry
-import textfsm
+import jtextfsm as textfsm
 import re
 
 

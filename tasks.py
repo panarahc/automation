@@ -2,6 +2,7 @@
 
 from framework import CheckOperation
 #from os_versions import supported_versions
+from auto_operations.helpers import interface_expand
 
 
 @CheckOperation()
@@ -85,6 +86,38 @@ def get_interfaces(context,target, interfaces='all'):
 
     interfaces = context.get_operation('get_interfaces')
     return interfaces
+
+@CheckOperation()
+def get_interfaces_utilization(context, target, interfaces='all'):
+    '''
+    Arguments:
+        target: Target device
+        interfaces: Default is 'all'. It also accepts a comma-separated list of interfaces eg. 'xe-0/0/1,xe-0/0/2'
+    '''
+
+    device_interfaces = context.get_operation('get_interfaces')
+
+    interfaces_util = list() 
+    if interfaces == 'all':
+        for interface in device_interfaces:
+            bandwidth = interface.bandwidth    
+            interfaces_util.append({'name': interface.name,
+                                    'input_util': calculate_util(interface.input_rate, bandwidth),
+                                    'output_util': calculate_util(interface.output_rate, bandwidth)})
+    else:
+        input_interfaces = [ interface_expand(intf) for intf in interfaces.split(',') ]
+        for intf in input_interfaces:
+            for interface in device_interfaces:
+                if intf == interface.name:
+                    bandwidth = interface.bandwidth
+                    interfaces_util.append({'name': interface.name,
+                                           'input_util': calculate_util(interface.input_rate, bandwidth),
+                                           'output_util': calculate_util(interface.output_rate, bandwidth)})
+    return interfaces_util
+
+
+def calculate_util(rate, bandwidth):
+    return (int(rate) / float(bandwidth)) * 100
 
 
 @CheckOperation()
@@ -187,3 +220,17 @@ def get_lldp_neighbors(context,target):
     neighbors = context.get_operation('get_lldp_neighbors')
     return neighbors
 
+@CheckOperation()
+def get_mpls_table(context, target):
+    '''
+    IOS: show mpls forwarding-table
+
+    The function returns a list of dicts with each list-item containing
+    local label, remote label, prefix, interface, nexthop.
+
+    Arguments:
+       target - target device
+    '''
+
+    labels = context.get_operation('get_mpls_table')
+    return labels
