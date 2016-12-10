@@ -121,6 +121,15 @@ def calculate_util(rate, bandwidth):
 
 
 @CheckOperation()
+def get_route_entry(context, target, prefix):
+    """Get entry from the route table that matches the prefix."""
+
+    route_entry = context.get_operation("get_route")
+
+    return route_entry["entry"]
+
+
+@CheckOperation()
 def get_ospf_neighbors(context, target):
     '''
     Gets OSPF neighbors and state on device.
