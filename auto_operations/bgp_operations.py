@@ -116,7 +116,7 @@ def get_bgp_neighbors(context,target):
     IOS/IOS-XE: show ip bgp summary
 
     Returns:
-	A dict of neighbors and neighbor attributes
+	A list of dicts of neighbors and neighbor attributes
     '''
 
     commands = ['show ip bgp summary']
@@ -125,10 +125,16 @@ def get_bgp_neighbors(context,target):
         output = cli.execute(commands)
 
     template = 'bgp_summary_ios.tmpl'
-    result = helpers.template_parser(template,output[0])
-    neighbors = dict()
+    parsed_result = helpers.template_parser(template,output[0])
+    neighbors = list()
 
-    for row in result:
+    HEADER = ["neighbor", "version", "peer_asn", "msg_rcvd", "msg_sent",
+              "table_version", "in_queue", "out_queue", "up/down", "state/prefixes"]
+
+    for row in parsed_result:
+        neighbors.append(dict(zip(HEADER, row)))
+
+        """
         neighbors[row[0]] = {'version':row[1],
                              'asn':row[2],
                              'msg_rcvd':row[3],
@@ -138,6 +144,7 @@ def get_bgp_neighbors(context,target):
                              'out_queue':row[7],
                              'up_down':row[8],
                              'state_prefixes':row[9]}
+        """
 
     return neighbors
 

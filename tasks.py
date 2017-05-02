@@ -175,13 +175,11 @@ def check_prefixes_received_from_neighbor(context,target,neighbor,prefixes):
 
 
 @CheckOperation()
-def get_bgp_neighbors(context,target):
-    '''
-    Arguments:
-	target: Target device
-    '''
+def get_bgp_neighbors(context, target):
+    """Get a list of BGP neighbors for a given device."""
 
-    neighbors = context.get_operation('get_bgp_neighbors')
+    response = context.get_operation("get_bgp_neighbors")
+    neighbors = [ row["neighbor"] for row in response ]
     return neighbors
 
 
