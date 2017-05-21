@@ -95,28 +95,28 @@ def get_interfaces_utilization(context, target, interfaces='all'):
         interfaces: Default is 'all'. It also accepts a comma-separated list of interfaces eg. 'xe-0/0/1,xe-0/0/2'
     '''
 
+    def append_to_list(_intf):
+        bandwidth = _intf.bandwidth
+        interfaces_util.append({'name': _intf.name,
+                                'description': _intf.description,
+                                'input_utilization': calculate_utilization(_intf.input_rate, bandwidth),
+                                'output_utilization': calculate_utilization(_intf.output_rate, bandwidth)})
+
+
     device_interfaces = context.get_operation('get_interfaces')
 
     interfaces_util = list() 
     if interfaces == 'all':
         for interface in device_interfaces:
-            bandwidth = interface.bandwidth    
-            interfaces_util.append({'name': interface.name,
-                                    'input_util': calculate_util(interface.input_rate, bandwidth),
-                                    'output_util': calculate_util(interface.output_rate, bandwidth)})
+            append_to_list(interface)
     else:
         input_interfaces = [ interface_expand(intf) for intf in interfaces.split(',') ]
         for intf in input_interfaces:
-            for interface in device_interfaces:
-                if intf == interface.name:
-                    bandwidth = interface.bandwidth
-                    interfaces_util.append({'name': interface.name,
-                                           'input_util': calculate_util(interface.input_rate, bandwidth),
-                                           'output_util': calculate_util(interface.output_rate, bandwidth)})
+            append_to_list(filter(lambda x: x.name==intf, device_interfaces)[0])
     return interfaces_util
 
 
-def calculate_util(rate, bandwidth):
+def calculate_utilization(rate, bandwidth):
     return (int(rate) / float(bandwidth)) * 100
 
 

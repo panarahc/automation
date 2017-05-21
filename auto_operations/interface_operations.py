@@ -10,11 +10,6 @@ from textwrap import dedent
 
 registry = OperationRegistry()
 
-INTERFACE_ATTRIBUTES = ['name', 'admin_status', 'oper_status', 'ip_address', 'bandwidth', 'input_rate',
-              'output_rate', 'input_bytes', 'output_bytes']
-
-INTERFACE = namedtuple('INTERFACE', INTERFACE_ATTRIBUTES)
-
 
 @registry.device_operation('get_interfaces',family='junos')
 def get_interfaces(context,target,interfaces='all'):
@@ -50,6 +45,7 @@ def get_interfaces(context,target,interfaces='all'):
 
     INTERFACE_IOS_TEMPLATE = StringIO.StringIO(dedent("""\
         Value name (\S+)
+        Value description (.*)
         Value admin_status (up|administratively down)
         Value oper_status (up|down)
         Value ip_address (\S+)
@@ -62,6 +58,7 @@ def get_interfaces(context,target,interfaces='all'):
         Start
           ^\S+ is (up|administratively down) -> Continue.Record
           ^${name}\s*is\s*${admin_status},\s*line protocol\s*is\s*${oper_status}
+          ^\s*Description: ${description}
           ^\s*Internet address is ${ip_address}
           ^\s*MTU.*, BW ${bandwidth}
           ^\s*.*input rate ${input_rate}
@@ -79,6 +76,9 @@ def get_interfaces(context,target,interfaces='all'):
         response = cli.execute(commands)
 
     fsm = textfsm.TextFSM(INTERFACE_IOS_TEMPLATE)
+    interface_attributes = fsm.header
+    INTERFACE = namedtuple('INTERFACE', interface_attributes)
+
     parsed_result = fsm.ParseText(("\n").join(response))
     return [ INTERFACE(*intf_attributes) for intf_attributes in parsed_result ]  
     
